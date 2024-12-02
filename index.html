@@ -6,96 +6,142 @@
     <title>Snake Spiel</title>
     <style>
         canvas {
-            border: 1px solid black;
+            border: 1px solid white;
             display: block;
             margin: 0 auto;
+            background-color: black; /* Schwarzer Hintergrund */
+        }
+        #restartButton {
+            display: block;
+            margin: 10px auto;
+            padding: 10px 20px;
+            font-size: 16px;
+        }
+        #scoreDisplay {
+            text-align: center;
+            font-size: 18px;
+            color: white; /* Weiße Schrift für die Anzeige */
         }
     </style>
 </head>
 <body>
     <canvas id="gameCanvas" width="400" height="400"></canvas>
+    <div id="scoreDisplay">Score: 0 | Highscore: 0</div>
+    <button id="restartButton">Neustart</button>
     <script>
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
-        
+        const restartButton = document.getElementById('restartButton');
+        const scoreDisplay = document.getElementById('scoreDisplay');
+
         const box = 20;
-        let snake = [{x: 10 * box, y: 10 * box}];
-        let food = {
-            x: Math.floor(Math.random() * 20) * box,
-            y: Math.floor(Math.random() * 20) * box
-        };
-        
-        let score = 0;
+        let snake = [];
+        let food;
+        let score;
+        let highscore = localStorage.getItem('highscore') || 0;
         let d;
-        
-        document.addEventListener('keydown', direction);
-        
+        let game;
+
+        function init() {
+            snake = [{x: 10 * box, y: 10 * box}];
+            food = {
+                x: Math.floor(Math.random() * 20) * box,
+                y: Math.floor(Math.random() * 20) * box
+            };
+            score = 0;
+            d = undefined;
+            updateScoreDisplay();
+        }
+
         function direction(event) {
             if(event.keyCode == 37 && d != "RIGHT") d = "LEFT";
             else if(event.keyCode == 38 && d != "DOWN") d = "UP";
             else if(event.keyCode == 39 && d != "LEFT") d = "RIGHT";
             else if(event.keyCode == 40 && d != "UP") d = "DOWN";
         }
-        
-        function collision(head, array) {
-            for(let i = 0; i < array.length; i++) {
-                if(head.x == array[i].x && head.y == array[i].y) {
+
+        function checkCollision(head) {
+            if(head.x < 0 || head.x >= canvas.width || head.y < 0 || head.y >= canvas.height) {
+                return true;
+            }
+
+            for(let i = 1; i < snake.length; i++) {
+                if(head.x === snake[i].x && head.y === snake[i].y) {
                     return true;
                 }
             }
+
             return false;
         }
-        
+
+        function updateScoreDisplay() {
+            scoreDisplay.textContent = "Score: " + score + " | Highscore: " + highscore;
+        }
+
         function draw() {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
-            
+
             for(let i = 0; i < snake.length; i++) {
-                ctx.fillStyle = (i == 0) ? "green" : "white";
+                ctx.fillStyle = (i === 0) ? "lime" : "white"; // Kopf in Limegrün
                 ctx.fillRect(snake[i].x, snake[i].y, box, box);
-                
-                ctx.strokeStyle = "red";
+                ctx.strokeStyle = "red"; // Rand der Schlange in Rot
                 ctx.strokeRect(snake[i].x, snake[i].y, box, box);
             }
-            
-            ctx.fillStyle = "red";
+
+            ctx.fillStyle = "red"; // Futter in Rot
             ctx.fillRect(food.x, food.y, box, box);
-            
+
             let snakeX = snake[0].x;
             let snakeY = snake[0].y;
-            
-            if(d == "LEFT") snakeX -= box;
-            if(d == "UP") snakeY -= box;
-            if(d == "RIGHT") snakeX += box;
-            if(d == "DOWN") snakeY += box;
-            
-            if(snakeX == food.x && snakeY == food.y) {
+
+            if(d === "LEFT") snakeX -= box;
+            if(d === "UP") snakeY -= box;
+            if(d === "RIGHT") snakeX += box;
+            if(d === "DOWN") snakeY += box;
+
+            if(snakeX === food.x && snakeY === food.y) {
                 score++;
                 food = {
                     x: Math.floor(Math.random() * 20) * box,
                     y: Math.floor(Math.random() * 20) * box
+                };
+                updateScoreDisplay(); // Aktualisieren der Score-Anzeige
+                // Highscore aktualisieren
+                if(score > highscore) {
+                    highscore = score;
+                    localStorage.setItem('highscore', highscore);
                 }
             } else {
                 snake.pop();
             }
-            
-            let newHead = {
-                x: snakeX,
-                y: snakeY
-            }
-            
-            if(snakeX < 0 || snakeX > 19 * box || snakeY < 0 || snakeY > 19 * box || collision(newHead, snake)) {
+
+            let newHead = { x: snakeX, y: snakeY };
+
+            if(checkCollision(newHead)) {
                 clearInterval(game);
                 alert("Game Over! Dein Score: " + score);
+                return;
             }
-            
+
             snake.unshift(newHead);
             
-            ctx.fillStyle = "white";
-            ctx.font = "45px Changa one";
-            ctx.fillText(score, 2 * box, 1.6 * box);
+            ctx.fillStyle = "white"; // Schriftfarbe für Score-Anzeige
+            ctx.font = "20px Arial";
+            ctx.fillText("Score: " + score + " | Highscore: " + highscore, canvas.width / 2 - 100, canvas.height - 10);
         }
-        
-        let game = setInterval(draw, 100);
+
+        function startGame() {
+            init();
+            game = setInterval(draw, 100);
+        }
+
+        document.addEventListener('keydown', direction);
+        restartButton.addEventListener('click', function() {
+            clearInterval(game);
+            startGame();
+        });
+
+        startGame();
     </script>
 </body>
 </html>
